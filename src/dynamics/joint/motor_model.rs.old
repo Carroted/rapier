@@ -10,6 +10,8 @@ pub enum MotorModel {
     /// The solved spring-like equation is:
     /// `force = stiffness * (pos - target_pos) + damping * (vel - target_vel)`
     ForceBased,
+    /// velo
+    VelocityBased,
 }
 
 impl Default for MotorModel {
@@ -30,12 +32,10 @@ impl MotorModel {
     ) -> (Real, Real, Real) {
         match self {
             MotorModel::AccelerationBased => {
-                // let erp_inv_dt = stiffness * crate::utils::inv(dt * stiffness + damping);
-                // let cfm_coeff = crate::utils::inv(dt * dt * stiffness + dt * damping);
-
-                let erp_inv_dt = ((1.0/dt) * stiffness / ((1.0/dt) * stiffness + damping));
-
-                let cfm_coeff = (crate::utils::inv((1.0/dt)*stiffness+damping));
+                //let erp_inv_dt = stiffness * crate::utils::inv(dt * stiffness + damping);
+                let erp_inv_dt = (dt * stiffness) / (dt * stiffness + damping);
+                //let cfm_coeff = crate::utils::inv(dt * dt * stiffness + dt * damping);
+                let cfm_coeff = crate::utils::inv(dt*stiffness+damping);
                 (erp_inv_dt, cfm_coeff, 0.0)
             }
             MotorModel::ForceBased => {
@@ -45,6 +45,9 @@ impl MotorModel {
                 let cfm_gain = crate::utils::inv(dt*stiffness+damping);
                 (erp_inv_dt, 0.0, cfm_gain)
             }
+            MotorModel::VelocityBased => (
+                stiffness * crate::utils::inv(dt), damping, 1.0
+            )
         }
     }
 }

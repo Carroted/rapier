@@ -1,5 +1,5 @@
 use crate::dynamics::solver::MotorParameters;
-use crate::dynamics::{FixedJoint, MotorModel, PrismaticJoint, RevoluteJoint, RopeJoint};
+use crate::dynamics::{FixedJoint, MotorModel, PrismaticJoint, RevoluteJoint, RopeJoint, SpringJoint};
 use crate::math::{Isometry, Point, Real, Rotation, UnitVector, Vector, SPATIAL_DIM};
 use crate::utils::{WBasis, WReal};
 
@@ -139,6 +139,8 @@ pub struct JointMotor {
     pub target_vel: Real,
     /// The target position of the motor.
     pub target_pos: Real,
+    /// A vector pertaining to the target position of the motor.
+    pub target_pos_vector: Vector<Real>,
     /// The stiffness coefficient of the motor’s spring-like equation.
     pub stiffness: Real,
     /// The damping coefficient of the motor’s spring-like equation.
@@ -155,6 +157,7 @@ impl Default for JointMotor {
     fn default() -> Self {
         Self {
             target_pos: 0.0,
+            target_pos_vector: na::zero(),
             target_vel: 0.0,
             stiffness: 0.0,
             damping: 0.0,
@@ -411,6 +414,7 @@ impl GenericJoint {
         self
     }
 
+
     /// Sets the target velocity this motor needs to reach.
     pub fn set_motor_velocity(
         &mut self,
@@ -431,11 +435,11 @@ impl GenericJoint {
     pub fn set_motor_position(
         &mut self,
         axis: JointAxis,
-        target_pos: Real,
+        target_pos_vector: Vector<Real>,
         stiffness: Real,
         damping: Real,
     ) -> &mut Self {
-        self.set_motor(axis, target_pos, 0.0, stiffness, damping)
+        self.set_motor(axis, target_pos_vector[axis as usize], 0.0, stiffness, damping)
     }
 
     /// Sets the maximum force the motor can deliver along the specified axis.
@@ -472,6 +476,26 @@ impl GenericJoint {
         self.motors[i].damping = damping;
         self
     }
+/*
+    /// Configure both the target angle and target velocity of the motor.
+    pub fn set_motor_advanced(
+        &mut self,
+        axis: JointAxis,
+        target1: Isometry<Real>,
+        target2: Isometry<Real>,
+        target_vel: Real,
+        stiffness: Real,
+        damping: Real,
+    ) -> &mut Self {
+        self.motor_axes |= axis.into();
+        let i = axis as usize;
+        self.motors[i].target_vel = target_vel;
+        self.motors[i].target_pos = ((target1.translation.x - target2.translation.x).powf(2.0) + (target1.translation.y - target2.translation.y).powf(2.0)).sqrt();
+        //self.motors[i].target_pos = target_pos;
+        self.motors[i].stiffness = stiffness;
+        self.motors[i].damping = damping;
+        self
+    }*/
 }
 
 macro_rules! joint_conversion_methods(
@@ -525,6 +549,12 @@ impl GenericJoint {
         as_rope,
         as_rope_mut,
         RopeJoint,
+        JointAxesMask::FREE_FIXED_AXES
+    );
+    joint_conversion_methods!(
+        as_spring,
+        as_spring_mut,
+        SpringJoint,
         JointAxesMask::FREE_FIXED_AXES
     );
 
@@ -638,12 +668,12 @@ impl GenericJointBuilder {
     pub fn motor_position(
         mut self,
         axis: JointAxis,
-        target_pos: Real,
+        target_pos_vector: Vector<Real>,
         stiffness: Real,
         damping: Real,
     ) -> Self {
         self.0
-            .set_motor_position(axis, target_pos, stiffness, damping);
+            .set_motor_position(axis, target_pos_vector, stiffness, damping);
         self
     }
 

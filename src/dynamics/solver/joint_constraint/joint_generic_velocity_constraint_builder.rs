@@ -156,7 +156,7 @@ impl JointVelocityConstraintBuilder<Real> {
         let ang_jac1 = self.cmat1_basis.column(locked_axis).into_owned();
         let ang_jac2 = self.cmat2_basis.column(locked_axis).into_owned();
 
-        let mut c = self.lock_jacobians_generic(
+        let mut constraint = self.lock_jacobians_generic(
             params,
             jacobians,
             j_id,
@@ -173,8 +173,8 @@ impl JointVelocityConstraintBuilder<Real> {
 
         let erp_inv_dt = params.joint_erp_inv_dt();
         let rhs_bias = lin_jac.dot(&self.lin_err) * erp_inv_dt;
-        c.rhs += rhs_bias;
-        c
+        constraint.rhs += rhs_bias;
+        constraint
     }
 
     pub fn limit_linear_generic(
@@ -194,7 +194,6 @@ impl JointVelocityConstraintBuilder<Real> {
         let lin_jac = self.basis.column(limited_axis).into_owned();
         let ang_jac1 = self.cmat1_basis.column(limited_axis).into_owned();
         let ang_jac2 = self.cmat2_basis.column(limited_axis).into_owned();
-
         let mut constraint = self.lock_jacobians_generic(
             params,
             jacobians,
@@ -211,17 +210,17 @@ impl JointVelocityConstraintBuilder<Real> {
         );
 
         let dist = self.lin_err.dot(&lin_jac);
-        let min_enabled = dist < limits[0];
-        let max_enabled = limits[1] < dist;
+        // let min_enabled = dist < limits[0];
+        // let max_enabled = limits[1] < dist;
 
-        let erp_inv_dt = params.joint_erp_inv_dt();
+        let erp_inv_dt = params.joint_erp_inv_dt()/160.0;
         let rhs_bias = ((dist - limits[1]).max(0.0) - (limits[0] - dist).max(0.0)) * erp_inv_dt;
         constraint.rhs += rhs_bias;
-        constraint.impulse_bounds = [
-            min_enabled as u32 as Real * -Real::MAX,
-            max_enabled as u32 as Real * Real::MAX,
-        ];
-
+        // constraint.impulse_bounds = [
+        //     min_enabled as u32 as Real * -Real::MAX,
+        //     max_enabled as u32 as Real * Real::MAX,
+        // ];
+        constraint.impulse_bounds = [-Real::MAX, Real::MAX];
         constraint
     }
 
@@ -359,12 +358,13 @@ impl JointVelocityConstraintBuilder<Real> {
         let s_ang = self.ang_err.im;
         #[cfg(feature = "dim3")]
         let s_ang = self.ang_err.imag()[limited_axis];
-        let min_enabled = s_ang < s_limits[0];
-        let max_enabled = s_limits[1] < s_ang;
-        let impulse_bounds = [
-            min_enabled as u32 as Real * -Real::MAX,
-            max_enabled as u32 as Real * Real::MAX,
-        ];
+        // let min_enabled = s_ang < s_limits[0];
+        // let max_enabled = s_limits[1] < s_ang;
+        // let impulse_bounds = [
+        //     min_enabled as u32 as Real * -Real::MAX,
+        //     max_enabled as u32 as Real * Real::MAX,
+        // ];
+        let impulse_bounds = [-Real::MAX, Real::MAX];
 
         let erp_inv_dt = params.joint_erp_inv_dt();
         let rhs_bias =
@@ -417,7 +417,7 @@ impl JointVelocityConstraintBuilder<Real> {
             #[cfg(feature = "dim3")]
             let s_ang_dist = self.ang_err.imag()[_motor_axis];
             let s_target_ang = motor_params.target_pos.sin();
-            rhs_wo_bias += (s_ang_dist - s_target_ang) * motor_params.erp_inv_dt;
+            rhs_wo_bias += (s_ang_dist - s_target_ang) * motor_params.cfm_coeff;
         }
 
         let dvel = ang_jac.gdot(body2.angvel) - ang_jac.gdot(body1.angvel);
@@ -609,10 +609,11 @@ impl JointVelocityConstraintBuilder<Real> {
         let erp_inv_dt = params.joint_erp_inv_dt();
         let rhs_bias = ((dist - limits[1]).max(0.0) - (limits[0] - dist).max(0.0)) * erp_inv_dt;
         constraint.rhs += rhs_bias;
-        constraint.impulse_bounds = [
-            min_enabled as u32 as Real * -Real::MAX,
-            max_enabled as u32 as Real * Real::MAX,
-        ];
+        // constraint.impulse_bounds = [
+        //     min_enabled as u32 as Real * -Real::MAX,
+        //     max_enabled as u32 as Real * Real::MAX,
+        // ];
+        constraint.impulse_bounds = [-Real::MAX, Real::MAX];
 
         constraint
     }
@@ -635,7 +636,7 @@ impl JointVelocityConstraintBuilder<Real> {
         let ang_jac2 = self.cmat2_basis.column(motor_axis).into_owned();
 
         // TODO: do we need the same trick as for the non-generic constraint?
-        // if locked_ang_axes & (1 << motor_axis) != 0 {
+        // if locked_lin_axes & (1 << motor_axis) != 0 {
         //     // FIXME: check that this also works for cases
         //     // whene not all the angular axes are locked.
         //     constraint.ang_jac1.fill(0.0);
@@ -742,10 +743,11 @@ impl JointVelocityConstraintBuilder<Real> {
         let s_ang = self.ang_err.imag()[limited_axis];
         let min_enabled = s_ang < s_limits[0];
         let max_enabled = s_limits[1] < s_ang;
-        let impulse_bounds = [
-            min_enabled as u32 as Real * -Real::MAX,
-            max_enabled as u32 as Real * Real::MAX,
-        ];
+        // let impulse_bounds = [
+        //     min_enabled as u32 as Real * -Real::MAX,
+        //     max_enabled as u32 as Real * Real::MAX,
+        // ];
+        let impulse_bounds = [-Real::MAX, Real::MAX];
 
         let erp_inv_dt = params.joint_erp_inv_dt();
         let rhs_bias =

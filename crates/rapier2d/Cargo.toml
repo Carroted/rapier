@@ -16,7 +16,7 @@ edition = "2021"
 maintenance = { status = "actively-developed" }
 
 [features]
-default = [ "dim2", "f32" ]
+default = [ "dim2", "f32", "debug-render" ]
 dim2    = [ ]
 f32     = [ ]
 parallel = [ "rayon" ]

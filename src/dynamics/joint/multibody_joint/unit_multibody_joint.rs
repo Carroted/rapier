@@ -2,12 +2,11 @@
 
 use crate::dynamics::joint::MultibodyLink;
 use crate::dynamics::solver::{
-    AnyJointVelocityConstraint, JointGenericVelocityGroundConstraint, WritebackId,
+    AnyJointVelocityConstraint, JointGenericVelocityGroundConstraint, WritebackId
 };
 use crate::dynamics::{IntegrationParameters, JointMotor, Multibody};
 use crate::math::Real;
 use na::DVector;
-
 /// Initializes and generate the velocity constraints applicable to the multibody links attached
 /// to this multibody_joint.
 pub fn unit_joint_limit_constraint(
@@ -15,6 +14,7 @@ pub fn unit_joint_limit_constraint(
     multibody: &Multibody,
     link: &MultibodyLink,
     limits: [Real; 2],
+    motor: &JointMotor,
     curr_pos: Real,
     dof_id: usize,
     j_id: &mut usize,
@@ -22,14 +22,14 @@ pub fn unit_joint_limit_constraint(
     constraints: &mut Vec<AnyJointVelocityConstraint>,
     insert_at: &mut Option<usize>,
 ) {
+    let motor_params = motor.motor_params(params.dt);
     let ndofs = multibody.ndofs();
     let joint_velocity = multibody.joint_velocity(link);
-
-    let min_enabled = curr_pos < limits[0];
-    let max_enabled = limits[1] < curr_pos;
+    // let min_enabled = curr_pos < motor_params.target_pos;
+    // let max_enabled = motor_params.target_pos < curr_pos;
     let erp_inv_dt = params.joint_erp_inv_dt();
     let cfm_coeff = params.joint_cfm_coeff();
-    let rhs_bias = ((curr_pos - limits[1]).max(0.0) - (limits[0] - curr_pos).max(0.0)) * erp_inv_dt;
+    let rhs_bias = ((curr_pos - motor_params.target_pos) - (motor_params.target_pos - curr_pos)) * motor_params.erp_inv_dt;
     let rhs_wo_bias = joint_velocity[dof_id];
 
     let dof_j_id = *j_id + dof_id + link.assembly_id;
@@ -41,10 +41,7 @@ pub fn unit_joint_limit_constraint(
         .solve_mut(&mut jacobians.rows_mut(*j_id + ndofs, ndofs));
 
     let lhs = jacobians[dof_j_id + ndofs]; // = J^t * M^-1 J
-    let impulse_bounds = [
-        min_enabled as u32 as Real * -Real::MAX,
-        max_enabled as u32 as Real * Real::MAX,
-    ];
+    let impulse_bounds = [-motor_params.max_impulse, motor_params.max_impulse];
 
     let constraint = JointGenericVelocityGroundConstraint {
         mj_lambda2: multibody.solver_id,
@@ -56,7 +53,7 @@ pub fn unit_joint_limit_constraint(
         inv_lhs: crate::utils::inv(lhs),
         rhs: rhs_wo_bias + rhs_bias,
         rhs_wo_bias,
-        cfm_coeff,
+        cfm_coeff: motor_params.cfm_coeff,
         cfm_gain: 0.0,
         writeback_id: WritebackId::Limit(dof_id),
     };
@@ -106,19 +103,23 @@ pub fn unit_joint_motor_constraint(
 
     let mut rhs_wo_bias = 0.0;
     if motor_params.erp_inv_dt != 0.0 {
-        rhs_wo_bias += (curr_pos - motor_params.target_pos) * motor_params.erp_inv_dt;
+        rhs_wo_bias += (curr_pos.abs() - motor_params.target_pos) * motor_params.erp_inv_dt;
+        println!("{}", curr_pos);
     }
-
     let mut target_vel = motor_params.target_vel;
-    if let Some(limits) = limits {
-        target_vel = target_vel.clamp(
-            (limits[0] - curr_pos) * inv_dt,
-            (limits[1] - curr_pos) * inv_dt,
-        );
-    };
+    //if let Some(limits) = limits {
+    target_vel = target_vel.clamp(
+        //(motor_params.target_pos) * motor_params.erp_inv_dt,
+        //(curr_pos - motor_params.target_pos) * motor_params.erp_inv_dt,
+        -10.0,
+        10.0
+    );
 
+    //};
+
+    //let rhs_bias = ((curr_pos - limits.unwrap()[1]).max(0.0) - (limits.unwrap()[0] - curr_pos).max(0.0)) * motor_params.erp_inv_dt;
     let dvel = joint_velocity[dof_id];
-    rhs_wo_bias += dvel - target_vel;
+    rhs_wo_bias += dvel.powf(2.0);
 
     let constraint = JointGenericVelocityGroundConstraint {
         mj_lambda2: multibody.solver_id,
