@@ -1031,7 +1031,6 @@ pub struct RigidBodyBuilder {
     /// An arbitrary user-defined 128-bit integer associated to the rigid-bodies built by this builder.
     pub user_data: u128,
 }
-
 impl RigidBodyBuilder {
     /// Initialize a new builder for a rigid body which is either fixed, dynamic, or kinematic.
     pub fn new(body_type: RigidBodyType) -> Self {

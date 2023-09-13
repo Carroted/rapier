@@ -1,20 +1,20 @@
 use crate::dynamics::joint::{GenericJoint, GenericJointBuilder, JointAxesMask};
 use crate::dynamics::{JointAxis, MotorModel};
-use crate::math::{Point, Real, UnitVector, Vector};
+use crate::math::{Point, Real, UnitVector};
 
 use super::{JointLimits, JointMotor};
 
 #[cfg_attr(feature = "serde-serialize", derive(Serialize, Deserialize))]
 #[derive(Copy, Clone, Debug, PartialEq)]
 #[repr(transparent)]
-/// A rope joint, limits the maximum distance between two bodies
-pub struct RopeJoint {
+/// A funny joint, limits the boringness between two bodies
+pub struct SpringJoint {
     /// The underlying joint data.
     pub data: GenericJoint,
 }
 
-impl RopeJoint {
-    /// Creates a new rope joint limiting the max distance between to bodies
+impl SpringJoint {
+    /// Creates a new funny joint limiting the boringness between two bodies
     pub fn new() -> Self {
         let data = GenericJointBuilder::new(JointAxesMask::FREE_FIXED_AXES)
             .coupled_axes(JointAxesMask::LIN_AXES)
@@ -116,17 +116,17 @@ impl RopeJoint {
     /// Sets the target angle this motor needs to reach.
     pub fn set_motor_position(
         &mut self,
-        target_pos_vector: Vector<Real>,
+        target_pos: Real,
         stiffness: Real,
         damping: Real,
     ) -> &mut Self {
         self.data
-            .set_motor_position(JointAxis::X, target_pos_vector, stiffness, damping);
+            .set_motor_position(JointAxis::X, target_pos, stiffness, damping);
         self.data
-            .set_motor_position(JointAxis::Y, target_pos_vector, stiffness, damping);
+            .set_motor_position(JointAxis::Y, target_pos, stiffness, damping);
         #[cfg(feature = "dim3")]
         self.data
-            .set_motor_position(JointAxis::Z, target_pos_vector, stiffness, damping);
+            .set_motor_position(JointAxis::Z, target_pos, stiffness, damping);
         self
     }
 
@@ -173,7 +173,7 @@ impl RopeJoint {
     }
 }
 
-impl Into<GenericJoint> for RopeJoint {
+impl Into<GenericJoint> for SpringJoint {
     fn into(self) -> GenericJoint {
         self.data
     }
@@ -184,14 +184,14 @@ impl Into<GenericJoint> for RopeJoint {
 /// A rope joint, limits the maximum distance between two bodies.
 #[cfg_attr(feature = "serde-serialize", derive(Serialize, Deserialize))]
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct RopeJointBuilder(pub RopeJoint);
+pub struct SpringJointBuilder(pub SpringJoint);
 
-impl RopeJointBuilder {
+impl SpringJointBuilder {
     /// Creates a new builder for rope joints.
     ///
     /// This axis is expressed in the local-space of both rigid-bodies.
     pub fn new() -> Self {
-        Self(RopeJoint::new())
+        Self(SpringJoint::new())
     }
 
     /// Sets whether contacts between the attached rigid-bodies are enabled.
@@ -245,8 +245,8 @@ impl RopeJointBuilder {
 
     /// Sets the target angle this motor needs to reach.
     #[must_use]
-    pub fn motor_position(mut self, target_pos_vector: Vector<Real>, stiffness: Real, damping: Real) -> Self {
-        self.0.set_motor_position(target_pos_vector, stiffness, damping);
+    pub fn motor_position(mut self, target_pos: Real, stiffness: Real, damping: Real) -> Self {
+        self.0.set_motor_position(target_pos, stiffness, damping);
         self
     }
 
@@ -279,12 +279,12 @@ impl RopeJointBuilder {
 
     /// Builds the rope joint.
     #[must_use]
-    pub fn build(self) -> RopeJoint {
+    pub fn build(self) -> SpringJoint {
         self.0
     }
 }
 
-impl Into<GenericJoint> for RopeJointBuilder {
+impl Into<GenericJoint> for SpringJointBuilder {
     fn into(self) -> GenericJoint {
         self.0.into()
     }

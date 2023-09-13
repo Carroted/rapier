@@ -106,12 +106,12 @@ impl IntegrationParameters {
         // Compute CFM assuming a critically damped spring multiplied by the damping ratio.
         let inv_erp_minus_one = 1.0 / self.erp - 1.0;
 
-        // let stiffness = 4.0 * damping_ratio * damping_ratio * projected_mass
+        // let stiffness = 4.0 * self.damping_ratio * self.damping_ratio * projected_mass
         //     / (dt * dt * inv_erp_minus_one * inv_erp_minus_one);
         // let damping = 4.0 * damping_ratio * damping_ratio * projected_mass
         //     / (dt * inv_erp_minus_one);
         // let cfm = 1.0 / (dt * dt * stiffness + dt * damping);
-        // NOTE: This simplies to cfm = cfm_coefff / projected_mass:
+        // NOTE: This simplies to cfm = cfm_coeff / projected_mass:
         let cfm_coeff = inv_erp_minus_one * inv_erp_minus_one
             / ((1.0 + inv_erp_minus_one) * 4.0 * self.damping_ratio * self.damping_ratio);
 

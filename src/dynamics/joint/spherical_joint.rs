@@ -1,6 +1,6 @@
 use crate::dynamics::joint::{GenericJoint, GenericJointBuilder, JointAxesMask};
 use crate::dynamics::{JointAxis, JointMotor, MotorModel};
-use crate::math::{Isometry, Point, Real};
+use crate::math::{Isometry, Point, Real, Vector};
 
 use super::JointLimits;
 
@@ -121,12 +121,12 @@ impl SphericalJoint {
     pub fn set_motor_position(
         &mut self,
         axis: JointAxis,
-        target_pos: Real,
+        target_pos_vector: Vector<Real>,
         stiffness: Real,
         damping: Real,
     ) -> &mut Self {
         self.data
-            .set_motor_position(axis, target_pos, stiffness, damping);
+            .set_motor_position(axis, target_pos_vector, stiffness, damping);
         self
     }
 
@@ -243,18 +243,18 @@ impl SphericalJointBuilder {
     pub fn motor_position(
         mut self,
         axis: JointAxis,
-        target_pos: Real,
+        target_pos_vector: Vector<Real>,
         stiffness: Real,
         damping: Real,
     ) -> Self {
         self.0
-            .set_motor_position(axis, target_pos, stiffness, damping);
+            .set_motor_position(axis, target_pos_vector, stiffness, damping);
         self
     }
 
     /// Configure both the target angle and target velocity of the motor.
     #[must_use]
-    pub fn motor(
+    pub fn set_motor(
         mut self,
         axis: JointAxis,
         target_pos: Real,

@@ -1,6 +1,6 @@
 use crate::dynamics::joint::{GenericJoint, GenericJointBuilder, JointAxesMask};
 use crate::dynamics::{JointAxis, JointLimits, JointMotor, MotorModel};
-use crate::math::{Point, Real};
+use crate::math::{Point, Real, Vector};
 
 #[cfg(feature = "dim3")]
 use crate::math::UnitVector;
@@ -96,12 +96,12 @@ impl RevoluteJoint {
     /// Sets the target angle this motor needs to reach.
     pub fn set_motor_position(
         &mut self,
-        target_pos: Real,
+        target_pos_vector: Vector<Real>,
         stiffness: Real,
         damping: Real,
     ) -> &mut Self {
         self.data
-            .set_motor_position(JointAxis::AngX, target_pos, stiffness, damping);
+            .set_motor_position(JointAxis::AngX, target_pos_vector, stiffness, damping);
         self
     }
 
@@ -202,8 +202,8 @@ impl RevoluteJointBuilder {
 
     /// Sets the target angle this motor needs to reach.
     #[must_use]
-    pub fn motor_position(mut self, target_pos: Real, stiffness: Real, damping: Real) -> Self {
-        self.0.set_motor_position(target_pos, stiffness, damping);
+    pub fn motor_position(mut self, target_pos_vector: Vector<Real>, stiffness: Real, damping: Real) -> Self {
+        self.0.set_motor_position(target_pos_vector, stiffness, damping);
         self
     }
 

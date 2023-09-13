@@ -524,24 +524,31 @@ impl JointVelocityGroundConstraint<Real, 1> {
         if (motor_axes & coupled_axes) & JointAxesMask::ANG_AXES.bits() != 0 {
             // TODO: coupled angular motor constraint.
         }
+        for i in 0..DIM {
+            if (motor_axes & coupled_axes) & JointAxesMask::LIN_AXES.bits() != 0 {
+                if (motor_axes & !coupled_axes) & (1 << i) != 0 {
+                    let _limits = if limit_axes & (1 << i) != 0 {
+                        Some([joint.limits[i].min, joint.limits[i].max])
+                    } else {
+                        None
+                    };
 
-        if (motor_axes & coupled_axes) & JointAxesMask::LIN_AXES.bits() != 0 {
-            /*
+                    out[len] = builder.motor_linear_coupled_ground(
+                        params,
+                        [joint_id],
+                        body1,
+                        body2,
+                        motor_axes & coupled_axes,
+                        &joint.motors[i].motor_params(params.dt),
+                        limit_axes & coupled_axes,
+                        &joint.limits,
+                        WritebackId::Limit(0), // TODO: writeback
+                    );
+                    len += 1;
+                }
+            }
             // TODO: coupled linear motor constraint.
-            out[len] = builder.motor_linear_coupled_ground(
-                params,
-                [joint_id],
-                body1,
-                body2,
-                motor_axes & coupled_axes,
-                &joint.motors,
-                limit_axes & coupled_axes,
-                &joint.limits,
-                WritebackId::Limit(0), // TODO: writeback
-            );
-            len += 1;
-            */
-            todo!()
+
         }
 
         JointVelocityConstraintBuilder::finalize_ground_constraints(&mut out[start..len]);
@@ -618,16 +625,21 @@ impl JointVelocityGroundConstraint<Real, 1> {
         }
 
         if (limit_axes & coupled_axes) & JointAxesMask::LIN_AXES.bits() != 0 {
-            out[len] = builder.limit_linear_coupled_ground(
-                params,
-                [joint_id],
-                body1,
-                body2,
-                limit_axes & coupled_axes,
-                &joint.limits,
-                WritebackId::Limit(0), // TODO: writeback
-            );
-            len += 1;
+            for i in 0..DIM {
+                if (limit_axes & !coupled_axes) & (1 << i) != 0 {
+                    out[len] = builder.limit_linear_coupled_ground(
+                        params,
+                        [joint_id],
+                        body1,
+                        body2,
+                        limit_axes & coupled_axes,
+                        &joint.limits,
+                        WritebackId::Limit(i), // TODO: writeback
+                    );
+                    len += 1;
+                }
+            }
+
         }
         JointVelocityConstraintBuilder::finalize_ground_constraints(&mut out[start..len]);
 

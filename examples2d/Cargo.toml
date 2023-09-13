@@ -17,12 +17,17 @@ rand       = "0.8"
 Inflector  = "0.11"
 lyon       = "0.17"
 usvg       = "0.14"
+serde      = "*"
+num-traits = "*"
 
 [dependencies.rapier_testbed2d]
 path = "../crates/rapier_testbed2d"
 
 [dependencies.rapier2d]
 path = "../crates/rapier2d"
+
+[dependencies.rapier3d]
+path = "../crates/rapier3d"
 
 [[bin]]
 name = "all_examples2"
